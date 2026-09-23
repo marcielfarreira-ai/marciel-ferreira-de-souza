@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: driver_finance
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  server:
+    image: node:22-slim
+    working_dir: /app/server
+    volumes:
+      - ./:/app
+    command: sh -c "apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && npm install && npx prisma generate && npx prisma db push --accept-data-loss && node prisma/seed.js && node --watch src/index.js"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/driver_finance
+      - PORT=4000
+    env_file:
+      - ./.env.base44-defaults
+      - /run/base44/app.env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  client:
+    image: node:22-slim
+    working_dir: /app/client
+    volumes:
+      - ./:/app
+    command: sh -c "npm install && npm run dev"
+    environment:
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+    ports:
+      - "3000:5173"
+    depends_on:
+      - server
+
+volumes:
+  pgdata:
