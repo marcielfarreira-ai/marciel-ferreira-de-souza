@@ -24,3 +24,4 @@ docker compose -f docker-compose.base44.yml up -d --build
 - Prisma uses `db push` (not migrations) for schema sync
 - Seed runs on every container start (upsert — safe to re-run)
 - `node --watch` provides backend live reload; Vite provides frontend live reload
+- The client waits for the server health endpoint before starting so its `/api` proxy cannot race the backend initialization.
