@@ -11,14 +11,60 @@ router.use(auth, adminOnly)
 router.get('/dashboard', async (req, res) => {
   const totalDrivers = await prisma.user.count({ where: { role: 'driver' } })
   const activeDrivers = await prisma.user.count({ where: { role: 'driver', status: 'active' } })
+  const inactiveDrivers = await prisma.user.count({ where: { role: 'driver', status: 'inactive' } })
+
   const drivers = await prisma.user.findMany({ where: { role: 'driver' }, include: { plan: true } })
+
+  // MRR: sum of monthly plan prices for active drivers
   const monthlyRevenue = drivers
-    .filter(d => d.status === 'active' && d.plan && d.plan.price > 0)
+    .filter(d => d.status === 'active' && d.plan && d.plan.billingCycle === 'monthly' && d.plan.price > 0)
     .reduce((sum, d) => sum + d.plan.price, 0)
+  const yearlyRevenue = drivers
+    .filter(d => d.status === 'active' && d.plan && d.plan.billingCycle === 'yearly' && d.plan.price > 0)
+    .reduce((sum, d) => sum + d.plan.price / 12, 0)
+  const mrr = monthlyRevenue + yearlyRevenue
+
+  // Churn: drivers who became inactive this month
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const churnedThisMonth = await prisma.user.count({
+    where: { role: 'driver', status: 'inactive', updatedAt: { gte: monthStart } }
+  })
+  const churnRate = totalDrivers > 0 ? (churnedThisMonth / totalDrivers) * 100 : 0
+
+  // Inadimplência: active drivers with expired subscription
+  const inadimplentes = drivers.filter(d =>
+    d.status === 'active' && d.subscriptionExpiresAt && new Date(d.subscriptionExpiresAt) < now
+  ).length
+
+  // Trial users
+  const trialUsers = drivers.filter(d =>
+    d.trialEndsAt && new Date(d.trialEndsAt) > now && !d.planId
+  ).length
+
   const recentDrivers = await prisma.user.findMany({
     where: { role: 'driver' }, include: { plan: true }, orderBy: { createdAt: 'desc' }, take: 5
   })
-  res.json({ totalDrivers, activeDrivers, monthlyRevenue, recentDrivers })
+
+  // Last 6 months MRR trend
+  const mrrTrend = []
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1)
+    const monthDrivers = await prisma.user.findMany({
+      where: { role: 'driver', createdAt: { lt: end }, status: 'active' },
+      include: { plan: true }
+    })
+    const monthMrr = monthDrivers
+      .filter(d => d.plan && d.plan.price > 0)
+      .reduce((sum, d) => sum + (d.plan.billingCycle === 'yearly' ? d.plan.price / 12 : d.plan.price), 0)
+    mrrTrend.push({ month: start.toLocaleDateString('pt-BR', { month: 'short' }), mrr: monthMrr })
+  }
+
+  res.json({
+    totalDrivers, activeDrivers, inactiveDrivers, mrr, churnRate, churnedThisMonth,
+    inadimplentes, trialUsers, recentDrivers, mrrTrend
+  })
 })
 
 router.get('/drivers', async (req, res) => {
@@ -62,14 +108,14 @@ router.get('/plans', async (req, res) => {
 })
 
 router.post('/plans', async (req, res) => {
-  const { name, price, description, durationDays } = req.body
-  const plan = await prisma.plan.create({ data: { name, price, description, durationDays: durationDays || 30 } })
+  const { name, price, description, durationDays, billingCycle } = req.body
+  const plan = await prisma.plan.create({ data: { name, price, description, durationDays: durationDays || 30, billingCycle: billingCycle || 'monthly' } })
   res.json({ plan })
 })
 
 router.put('/plans/:id', async (req, res) => {
-  const { name, price, description, durationDays } = req.body
-  const plan = await prisma.plan.update({ where: { id: req.params.id }, data: { name, price, description, durationDays } })
+  const { name, price, description, durationDays, billingCycle } = req.body
+  const plan = await prisma.plan.update({ where: { id: req.params.id }, data: { name, price, description, durationDays, billingCycle } })
   res.json({ plan })
 })
 

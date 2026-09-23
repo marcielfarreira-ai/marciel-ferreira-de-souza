@@ -9,18 +9,22 @@ datasource db {
 }
 
 model User {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   name                  String
-  email                 String   @unique
+  email                 String    @unique
   password              String
   phone                 String?
-  role                  String   @default("driver")
-  status                String   @default("active")
+  role                  String    @default("driver")
+  status                String    @default("active")
   planId                String?
-  plan                  Plan?    @relation(fields: [planId], references: [id])
+  plan                  Plan?     @relation(fields: [planId], references: [id])
   subscriptionExpiresAt DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  onboardingCompleted   Boolean   @default(false)
+  trialEndsAt           DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  vehicles              Vehicle[]
+  dailyClosings         DailyClosing[]
   transactions          Transaction[]
 }
 
@@ -29,9 +33,82 @@ model Plan {
   name        String   @unique
   price       Float
   description String?
-  durationDays Int     @default(30)
+  durationDays Int      @default(30)
+  billingCycle String  @default("monthly") // monthly | yearly
   users       User[]
   createdAt   DateTime @default(now())
+}
+
+model Vehicle {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nickname        String
+  propulsionType  String   // electric | hybrid | flex | gasoline | ethanol | gnv
+  tankCapacity    Float    // L, m³ or kWh
+  initialOdometer  Float   @default(0)
+  initialEnergyMeter Float @default(0) // kWh meter reading (for EV)
+  isPrimary       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  dailyClosings   DailyClosing[]
+}
+
+model FuelPrice {
+  id              String   @id @default(cuid())
+  userId          String
+  fuelType        String   // electric_kwh | gasoline | ethanol | gnv
+  pricePerUnit    Float    // R$ per L, m³ or kWh
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model FixedCost {
+  id              String   @id @default(cuid())
+  userId          String
+  installment     Float    @default(0) // prestação/aluguel/financiamento R$/mês
+  insurance       Float    @default(0) // R$/mês
+  annualTaxes     Float    @default(0) // IPVA+licenciamento R$/ano
+  maintenanceProvision Float @default(0) // R$/km
+  tireProvision   Float    @default(0) // R$/km
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model PreviousVehicle {
+  id              String   @id @default(cuid())
+  userId          String
+  consumptionKmPerLiter Float @default(0)
+  fuelPrice       Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DailyClosing {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleId       String
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  date            DateTime
+  odometerReading Float
+  energyMeterReading Float  @default(0) // kWh meter (for EV/hybrid)
+  grossRevenue    Float    @default(0)
+  streetExpenses  Float    @default(0) // gastos na rua (alimentação, pedágio, etc)
+  fuelEntries     Json     @default("[]") // [{ fuelType, amount, pricePerUnit, quantity }]
+  kmDriven        Float    @default(0)
+  energyConsumed  Float    @default(0)
+  fuelCost        Float    @default(0)
+  fixedCostDaily  Float    @default(0)
+  provisionCost  Float    @default(0)
+  totalOperationalCost Float @default(0)
+  netProfit      Float    @default(0)
+  revenuePerKm    Float    @default(0)
+  costPerKm      Float    @default(0)
+  profitPerKm     Float    @default(0)
+  notes          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Transaction {

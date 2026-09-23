@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
-import { Car, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Car, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
 
-export default function Login() {
+export default function Register() {
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [phone, setPhone] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,17 +20,11 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const res = await api.post('/auth/login', { email, password })
+      const res = await api.post('/auth/register', { name, email, password, phone })
       login(res.data.token, res.data.user)
-      if (res.data.user.role === 'admin') {
-        navigate('/admin')
-      } else if (!res.data.user.onboardingCompleted) {
-        navigate('/onboarding')
-      } else {
-        navigate('/app')
-      }
+      navigate('/onboarding')
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao fazer login')
+      setError(err.response?.data?.error || 'Erro ao cadastrar')
     }
     setLoading(false)
   }
@@ -41,13 +37,22 @@ export default function Login() {
             <Car className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-white">DriverFina</h1>
-          <p className="text-slate-400 mt-2">Controle financeiro e custo de rodagem para motoristas</p>
+          <p className="text-slate-400 mt-2">Crie sua conta e comece o teste grátis de 7 dias</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-slate-900 rounded-2xl p-8 space-y-5 border border-slate-800">
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-lg px-4 py-3">{error}</div>
           )}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Nome completo</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <input type="text" value={name} onChange={e => setName(e.target.value)} required
+                className="w-full bg-slate-800 text-white rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                placeholder="Seu nome" />
+            </div>
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
             <div className="relative">
@@ -56,6 +61,12 @@ export default function Login() {
                 className="w-full bg-slate-800 text-white rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 placeholder="seu@email.com" />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Telefone (opcional)</label>
+            <input type="text" value={phone} onChange={e => setPhone(e.target.value)}
+              className="w-full bg-slate-800 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="(11) 99999-9999" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Senha</label>
@@ -72,15 +83,11 @@ export default function Login() {
           </div>
           <button type="submit" disabled={loading}
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg py-2.5 text-sm transition disabled:opacity-50">
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Cadastrando...' : 'Criar conta grátis'}
           </button>
           <p className="text-center text-sm text-slate-400">
-            Não tem conta? <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium">Criar conta grátis</Link>
+            Já tem conta? <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium">Entrar</Link>
           </p>
-          <div className="text-xs text-slate-600 text-center pt-2 border-t border-slate-800">
-            <p>Admin: admin@driver.finance / admin123</p>
-            <p>Motorista: motorista@exemplo.com / driver123</p>
-          </div>
         </form>
       </div>
     </div>
