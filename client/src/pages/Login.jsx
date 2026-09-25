@@ -102,10 +102,6 @@ export default function Login() {
           <p className="text-center text-sm text-slate-400">
             Não tem conta? <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium">Criar conta grátis</Link>
           </p>
-          <div className="text-xs text-slate-600 text-center pt-2 border-t border-slate-800">
-            <p>Admin: admin@driver.finance / admin123</p>
-            <p>Motorista: motorista@exemplo.com / driver123</p>
-          </div>
         </form>
       </div>
     </div>
