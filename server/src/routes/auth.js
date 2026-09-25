@@ -37,6 +37,53 @@ router.post('/login', async (req, res) => {
   res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, plan: user.plan, onboardingCompleted: user.onboardingCompleted, trialEndsAt: user.trialEndsAt } })
 })
 
+router.post('/google', async (req, res) => {
+  const { credential } = req.body
+  if (!credential) return res.status(400).json({ error: 'Credencial do Google não fornecida' })
+  if (!process.env.GOOGLE_CLIENT_ID) return res.status(500).json({ error: 'Login com Google não configurado' })
+
+  try {
+    const { OAuth2Client } = require('google-auth-library')
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    })
+    const payload = ticket.getPayload()
+    const googleId = payload['sub']
+    const email = payload['email']
+    const name = payload['name']
+
+    // Find existing user by googleId
+    let user = await prisma.user.findUnique({ where: { googleId }, include: { plan: true } })
+
+    // If not found by googleId, try by email (link existing account)
+    if (!user) {
+      user = await prisma.user.findUnique({ where: { email }, include: { plan: true } })
+      if (user) {
+        user = await prisma.user.update({ where: { id: user.id }, data: { googleId }, include: { plan: true } })
+      }
+    }
+
+    // If still not found, create new user with Google
+    if (!user) {
+      const trialEndsAt = new Date()
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7)
+      user = await prisma.user.create({
+        data: { name, email, googleId, role: 'driver', status: 'active', trialEndsAt },
+        include: { plan: true },
+      })
+    }
+
+    if (user.status !== 'active') return res.status(403).json({ error: 'Conta inativa' })
+
+    const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, process.env.JWT_SECRET, { expiresIn: '7d' })
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, plan: user.plan, onboardingCompleted: user.onboardingCompleted, trialEndsAt: user.trialEndsAt } })
+  } catch (err) {
+    res.status(401).json({ error: 'Falha ao autenticar com Google' })
+  }
+})
+
 router.get('/me', auth, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },

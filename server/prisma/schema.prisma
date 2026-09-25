@@ -12,7 +12,8 @@ model User {
   id                    String    @id @default(cuid())
   name                  String
   email                 String    @unique
-  password              String
+  password              String    @default("")
+  googleId              String?  @unique
   phone                 String?
   role                  String    @default("driver")
   status                String    @default("active")

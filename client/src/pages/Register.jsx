@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { Car, Mail, Lock, User, Eye, EyeOff } from 'lucide-react'
+import GoogleSignIn from '../components/GoogleSignIn'
 
 export default function Register() {
   const [name, setName] = useState('')
@@ -14,6 +15,23 @@ export default function Register() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  const handleGoogle = async (credential) => {
+    setError('')
+    setLoading(true)
+    try {
+      const res = await api.post('/auth/google', { credential })
+      login(res.data.token, res.data.user)
+      if (!res.data.user.onboardingCompleted) {
+        navigate('/onboarding')
+      } else {
+        navigate('/app')
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erro ao cadastrar com Google')
+    }
+    setLoading(false)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -85,6 +103,11 @@ export default function Register() {
             className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-lg py-2.5 text-sm transition disabled:opacity-50">
             {loading ? 'Cadastrando...' : 'Criar conta grátis'}
           </button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-800" /></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-slate-900 px-2 text-slate-500">ou</span></div>
+          </div>
+          <GoogleSignIn onSuccess={handleGoogle} onError={setError} text="continue_with" />
           <p className="text-center text-sm text-slate-400">
             Já tem conta? <Link to="/login" className="text-emerald-400 hover:text-emerald-300 font-medium">Entrar</Link>
           </p>
