@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { Car, Gauge, Fuel, DollarSign, TrendingDown, Check, ChevronRight, ChevronLeft, Zap, Battery, Leaf, Droplet } from 'lucide-react'
+import MaskedNumberInput from '../components/MaskedNumberInput'
 
 const PROPULSION_TYPES = [
   { value: 'electric', label: 'Elétrico (EV)', icon: Zap },
@@ -154,8 +155,12 @@ export default function Onboarding() {
                 <label className={labelClass}>
                   Capacidade do tanque/bateria {vehicle.propulsionType === 'electric' ? '(kWh)' : vehicle.propulsionType === 'gnv' ? '(m³)' : '(Litros)'}
                 </label>
-                <input type="number" step="0.01" value={vehicle.tankCapacity} onChange={e => setVehicle({ ...vehicle, tankCapacity: e.target.value })}
-                  className={inputClass} placeholder={vehicle.propulsionType === 'electric' ? 'Ex: 60' : 'Ex: 45'} />
+                <MaskedNumberInput
+                  value={vehicle.tankCapacity}
+                  onChange={v => setVehicle({ ...vehicle, tankCapacity: v })}
+                  variant="volume_l"
+                  suffix={vehicle.propulsionType === 'electric' ? ' kWh' : vehicle.propulsionType === 'gnv' ? ' m³' : ' L'}
+                />
               </div>
             </div>
           )}
@@ -169,20 +174,22 @@ export default function Onboarding() {
               </div>
               <div>
                 <label className={labelClass}>Quilometragem atual (KM total)</label>
-                <div className="relative">
-                  <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                  <input type="number" step="0.1" value={odometer} onChange={e => setOdometer(e.target.value)}
-                    className={inputClass + ' pl-10'} placeholder="Ex: 15000" />
-                </div>
+                <MaskedNumberInput
+                  value={odometer}
+                  onChange={setOdometer}
+                  variant="km"
+                  icon={Gauge}
+                />
               </div>
               {isElectric && (
                 <div>
                   <label className={labelClass}>Leitura atual do medidor de kWh (opcional)</label>
-                  <div className="relative">
-                    <Battery className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                    <input type="number" step="0.1" value={energyMeter} onChange={e => setEnergyMeter(e.target.value)}
-                      className={inputClass + ' pl-10'} placeholder="Ex: 5000" />
-                  </div>
+                  <MaskedNumberInput
+                    value={energyMeter}
+                    onChange={setEnergyMeter}
+                    variant="kwh"
+                    icon={Battery}
+                  />
                   <p className="text-xs text-slate-500 mt-1">Para veículos elétricos/híbridos: leitura do relógio de kWh da tomada</p>
                 </div>
               )}
@@ -199,11 +206,12 @@ export default function Onboarding() {
               {currentFuelOptions.map(opt => (
                 <div key={opt.type}>
                   <label className={labelClass}>{opt.label}</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                    <input type="number" step="0.01" value={fuelPrices[opt.type] || ''} onChange={e => setFuelPrices({ ...fuelPrices, [opt.type]: e.target.value })}
-                      className={inputClass + ' pl-10'} placeholder="0.00" />
-                  </div>
+                  <MaskedNumberInput
+                    value={fuelPrices[opt.type] || 0}
+                    onChange={v => setFuelPrices({ ...fuelPrices, [opt.type]: v })}
+                    variant="currency"
+                    icon={DollarSign}
+                  />
                 </div>
               ))}
               {currentFuelOptions.length === 0 && (
@@ -222,28 +230,43 @@ export default function Onboarding() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Prestação/Aluguel/Financiamento (R$/mês)</label>
-                  <input type="number" step="0.01" value={fixedCosts.installment} onChange={e => setFixedCosts({ ...fixedCosts, installment: e.target.value })}
-                    className={inputClass} placeholder="0.00" />
+                  <MaskedNumberInput
+                    value={fixedCosts.installment}
+                    onChange={v => setFixedCosts({ ...fixedCosts, installment: v })}
+                    variant="currency"
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Seguro (R$/mês)</label>
-                  <input type="number" step="0.01" value={fixedCosts.insurance} onChange={e => setFixedCosts({ ...fixedCosts, insurance: e.target.value })}
-                    className={inputClass} placeholder="0.00" />
+                  <MaskedNumberInput
+                    value={fixedCosts.insurance}
+                    onChange={v => setFixedCosts({ ...fixedCosts, insurance: v })}
+                    variant="currency"
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Impostos anuais - IPVA+Licenciamento (R$/ano)</label>
-                  <input type="number" step="0.01" value={fixedCosts.annualTaxes} onChange={e => setFixedCosts({ ...fixedCosts, annualTaxes: e.target.value })}
-                    className={inputClass} placeholder="0.00" />
+                  <MaskedNumberInput
+                    value={fixedCosts.annualTaxes}
+                    onChange={v => setFixedCosts({ ...fixedCosts, annualTaxes: v })}
+                    variant="currency"
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Provisão para revisões (R$/km)</label>
-                  <input type="number" step="0.001" value={fixedCosts.maintenanceProvision} onChange={e => setFixedCosts({ ...fixedCosts, maintenanceProvision: e.target.value })}
-                    className={inputClass} placeholder="0.08" />
+                  <MaskedNumberInput
+                    value={fixedCosts.maintenanceProvision}
+                    onChange={v => setFixedCosts({ ...fixedCosts, maintenanceProvision: v })}
+                    variant="currency3"
+                  />
                 </div>
                 <div className="md:col-span-2">
                   <label className={labelClass}>Provisão para pneus (R$/km)</label>
-                  <input type="number" step="0.001" value={fixedCosts.tireProvision} onChange={e => setFixedCosts({ ...fixedCosts, tireProvision: e.target.value })}
-                    className={inputClass} placeholder="0.05" />
+                  <MaskedNumberInput
+                    value={fixedCosts.tireProvision}
+                    onChange={v => setFixedCosts({ ...fixedCosts, tireProvision: v })}
+                    variant="currency3"
+                  />
                 </div>
               </div>
             </div>
@@ -258,13 +281,19 @@ export default function Onboarding() {
               </div>
               <div>
                 <label className={labelClass}>Consumo do carro anterior (km/l)</label>
-                <input type="number" step="0.1" value={prevVehicle.consumptionKmPerLiter} onChange={e => setPrevVehicle({ ...prevVehicle, consumptionKmPerLiter: e.target.value })}
-                  className={inputClass} placeholder="Ex: 10" />
+                <MaskedNumberInput
+                  value={prevVehicle.consumptionKmPerLiter}
+                  onChange={v => setPrevVehicle({ ...prevVehicle, consumptionKmPerLiter: v })}
+                  variant="consumption"
+                />
               </div>
               <div>
                 <label className={labelClass}>Preço do combustível do carro anterior (R$/L)</label>
-                <input type="number" step="0.01" value={prevVehicle.fuelPrice} onChange={e => setPrevVehicle({ ...prevVehicle, fuelPrice: e.target.value })}
-                  className={inputClass} placeholder="Ex: 6.49" />
+                <MaskedNumberInput
+                  value={prevVehicle.fuelPrice}
+                  onChange={v => setPrevVehicle({ ...prevVehicle, fuelPrice: v })}
+                  variant="currency"
+                />
               </div>
               <div className="bg-slate-900 rounded-xl p-4 border border-slate-800">
                 <div className="flex items-start gap-3">

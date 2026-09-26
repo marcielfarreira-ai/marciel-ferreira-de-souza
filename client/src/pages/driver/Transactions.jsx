@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api'
 import { Plus, X, Trash2, Edit, TrendingUp, TrendingDown } from 'lucide-react'
+import MaskedNumberInput from '../../components/MaskedNumberInput'
 
 const INCOME_CATEGORIES = ['Corridas', 'Gorjetas', 'Bônus', 'Outros']
 const EXPENSE_CATEGORIES = ['Combustível', 'Manutenção', 'Alimentação', 'Limpeza', 'Pedágio', 'Outros']
@@ -135,7 +136,11 @@ export default function DriverTransactions() {
               </div>
               <div>
                 <label className={labelClass}>Valor (R$)</label>
-                <input type="number" step="0.01" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} className={inputClass} />
+                <MaskedNumberInput
+                  value={form.amount}
+                  onChange={v => setForm({ ...form, amount: v })}
+                  variant="currency"
+                />
               </div>
               <div>
                 <label className={labelClass}>Categoria</label>

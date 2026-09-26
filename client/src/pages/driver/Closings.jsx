@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api'
 import { Plus, X, Trash2, Edit, Gauge, Battery, DollarSign, Fuel, TrendingUp, TrendingDown } from 'lucide-react'
+import MaskedNumberInput from '../../components/MaskedNumberInput'
 
 const FUEL_TYPES = [
   { value: 'electric_kwh', label: 'Energia (kWh)' },
@@ -197,38 +198,42 @@ export default function DriverClosings() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>KM Atual (odômetro)</label>
-                  <div className="relative">
-                    <Gauge className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input type="number" step="0.1" required value={form.odometerReading} onChange={e => setForm({ ...form, odometerReading: e.target.value })}
-                      className={inputClass + ' pl-9'} placeholder="Ex: 15050" />
-                  </div>
+                  <MaskedNumberInput
+                    value={form.odometerReading}
+                    onChange={v => setForm({ ...form, odometerReading: v })}
+                    variant="km"
+                    icon={Gauge}
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Medidor kWh (EV/híbrido)</label>
-                  <div className="relative">
-                    <Battery className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input type="number" step="0.1" value={form.energyMeterReading} onChange={e => setForm({ ...form, energyMeterReading: e.target.value })}
-                      className={inputClass + ' pl-9'} placeholder="Opcional" />
-                  </div>
+                  <MaskedNumberInput
+                    value={form.energyMeterReading}
+                    onChange={v => setForm({ ...form, energyMeterReading: v })}
+                    variant="kwh"
+                    icon={Battery}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Faturamento Bruto (R$)</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input type="number" step="0.01" value={form.grossRevenue} onChange={e => setForm({ ...form, grossRevenue: e.target.value })}
-                      className={inputClass + ' pl-9'} placeholder="0.00" />
-                  </div>
+                  <MaskedNumberInput
+                    value={form.grossRevenue}
+                    onChange={v => setForm({ ...form, grossRevenue: v })}
+                    variant="currency"
+                    icon={DollarSign}
+                  />
                 </div>
                 <div>
                   <label className={labelClass}>Gastos na Rua (R$)</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                    <input type="number" step="0.01" value={form.streetExpenses} onChange={e => setForm({ ...form, streetExpenses: e.target.value })}
-                      className={inputClass + ' pl-9'} placeholder="0.00" />
-                  </div>
+                  <MaskedNumberInput
+                    value={form.streetExpenses}
+                    onChange={v => setForm({ ...form, streetExpenses: v })}
+                    variant="currency"
+                    icon={DollarSign}
+                  />
                 </div>
               </div>
 
@@ -248,10 +253,21 @@ export default function DriverClosings() {
                         className="bg-slate-700 text-white rounded px-2 py-1.5 text-xs focus:outline-none">
                         {FUEL_TYPES.map(ft => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
                       </select>
-                      <input type="number" step="0.01" placeholder="Qtd" value={fe.quantity} onChange={e => updateFuelEntry(i, 'quantity', e.target.value)}
-                        className="w-20 bg-slate-700 text-white rounded px-2 py-1.5 text-xs focus:outline-none" />
-                      <input type="number" step="0.01" placeholder="Preço/unit" value={fe.pricePerUnit} onChange={e => updateFuelEntry(i, 'pricePerUnit', e.target.value)}
-                        className="w-24 bg-slate-700 text-white rounded px-2 py-1.5 text-xs focus:outline-none" />
+                      <MaskedNumberInput
+                        value={fe.quantity}
+                        onChange={v => updateFuelEntry(i, 'quantity', v)}
+                        variant="volume_l"
+                        suffix={fe.fuelType === 'electric_kwh' ? ' kWh' : fe.fuelType === 'gnv' ? ' m³' : ' L'}
+                        size="sm"
+                        className="w-24"
+                      />
+                      <MaskedNumberInput
+                        value={fe.pricePerUnit}
+                        onChange={v => updateFuelEntry(i, 'pricePerUnit', v)}
+                        variant="currency"
+                        size="sm"
+                        className="w-28"
+                      />
                       <span className="text-xs text-slate-400 py-1.5">= R$ {fe.amount || '0.00'}</span>
                       <button type="button" onClick={() => removeFuelEntry(i)} className="p-1 text-slate-500 hover:text-red-400">
                         <Trash2 className="w-3 h-3" />

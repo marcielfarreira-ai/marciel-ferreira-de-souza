@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../../api'
 import { Plus, X, Trash2, Edit } from 'lucide-react'
+import MaskedNumberInput from '../../components/MaskedNumberInput'
 
 export default function AdminPlans() {
   const [plans, setPlans] = useState([])
@@ -76,7 +77,11 @@ export default function AdminPlans() {
               </div>
               <div>
                 <label className={labelClass}>Preço (R$)</label>
-                <input type="number" step="0.01" required value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className={inputClass} />
+                <MaskedNumberInput
+                  value={form.price}
+                  onChange={v => setForm({ ...form, price: v })}
+                  variant="currency"
+                />
               </div>
               <div>
                 <label className={labelClass}>Ciclo de cobrança</label>
