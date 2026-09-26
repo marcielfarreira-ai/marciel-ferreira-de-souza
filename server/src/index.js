@@ -4,6 +4,7 @@ const authRoutes = require('./routes/auth')
 const adminRoutes = require('./routes/admin')
 const financeRoutes = require('./routes/finance')
 const onboardingRoutes = require('./routes/onboarding')
+const settingsRoutes = require('./routes/settings')
 
 const app = express()
 
@@ -15,6 +16,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/finance', financeRoutes)
 app.use('/api/onboarding', onboardingRoutes)
+app.use('/api/settings', settingsRoutes)
 
 const PORT = process.env.PORT || 4000
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`))

@@ -11,7 +11,7 @@ router.use(auth)
 async function getDailyFixedCosts(userId) {
   const fc = await prisma.fixedCost.findFirst({ where: { userId } })
   if (!fc) return 0
-  const monthly = fc.installment + fc.insurance + (fc.annualTaxes / 12)
+  const monthly = fc.installment + fc.insurance + (fc.annualTaxes / 12) + ((fc.washCostWeekly || 0) * 52 / 12)
   return monthly / 30 // daily rate
 }
 
@@ -71,31 +71,37 @@ router.get('/dashboard', async (req, res) => {
     const currentOdometer = lastClosing ? lastClosing.odometerReading : vehicle.initialOdometer
     const fc = await prisma.fixedCost.findFirst({ where: { userId } })
 
-    // Tire change every 40000 km, maintenance every 10000 km
-    const tireInterval = 40000
-    const maintInterval = 10000
-    const lastTireChange = vehicle.initialOdometer
-    const kmSinceTires = currentOdometer - lastTireChange
-    const kmSinceMaint = currentOdometer - vehicle.initialOdometer
+    // Use vehicle-specific intervals (fall back to defaults for legacy data)
+    const tireInterval = vehicle.tireIntervalKm || 40000
+    const maintInterval = vehicle.maintenanceIntervalKm || 10000
+    const oilInterval = vehicle.oilIntervalKm || 10000
+
+    const lastTireChange = vehicle.lastTireChangeKm || vehicle.initialOdometer
+    const lastMaint = vehicle.lastMaintenanceKm || vehicle.initialOdometer
+    const lastOil = vehicle.lastOilChangeKm || vehicle.initialOdometer
+
+    const kmSinceTires = Math.max(0, currentOdometer - lastTireChange)
+    const kmSinceMaint = Math.max(0, currentOdometer - lastMaint)
+    const kmSinceOil = Math.max(0, currentOdometer - lastOil)
+
+    const buildAlert = (type, label, kmSince, interval) => {
+      if (interval <= 0) return null
+      const kmRemaining = interval - (kmSince % interval)
+      return {
+        type, label, kmSinceLast: kmSince, kmRemaining,
+        urgency: kmSince % interval > interval * 0.8 ? 'high' : 'normal',
+        interval,
+      }
+    }
 
     maintenanceAlerts = [
-      {
-        type: 'tires',
-        label: 'Troca de Pneus',
-        kmSinceLast: kmSinceTires,
-        kmRemaining: tireInterval - (kmSinceTires % tireInterval),
-        urgency: kmSinceTires % tireInterval > tireInterval * 0.8 ? 'high' : 'normal',
-        interval: tireInterval,
-      },
-      {
-        type: 'maintenance',
-        label: 'Revisão',
-        kmSinceLast: kmSinceMaint,
-        kmRemaining: maintInterval - (kmSinceMaint % maintInterval),
-        urgency: kmSinceMaint % maintInterval > maintInterval * 0.8 ? 'high' : 'normal',
-        interval: maintInterval,
-      }
-    ]
+      buildAlert('tires', 'Troca de Pneus', kmSinceTires, tireInterval),
+      buildAlert('maintenance', 'Revisão', kmSinceMaint, maintInterval),
+      // Oil change only for combustion/hybrid vehicles
+      ...(vehicle.propulsionType !== 'electric'
+        ? [buildAlert('oil', 'Troca de Óleo', kmSinceOil, oilInterval)]
+        : []),
+    ].filter(Boolean)
   }
 
   // Economy comparison

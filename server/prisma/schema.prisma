@@ -49,6 +49,21 @@ model Vehicle {
   tankCapacity    Float    // L, m³ or kWh
   initialOdometer  Float   @default(0)
   initialEnergyMeter Float @default(0) // kWh meter reading (for EV)
+  // Maintenance parameters
+  tireCost          Float  @default(0)
+  tireIntervalKm    Float  @default(0)
+  oilChangeCost     Float  @default(0)
+  oilIntervalKm     Float  @default(0)
+  maintenanceCost   Float  @default(0)
+  maintenanceOddCost Float  @default(0)
+  maintenanceEvenCost Float @default(0)
+  maintenanceIntervalKm Float @default(0)
+  useAlternatingMaint Boolean @default(false)
+  gnvInspectionCost Float  @default(0)
+  gnvInspectionDate DateTime?
+  lastTireChangeKm    Float  @default(0)
+  lastOilChangeKm     Float  @default(0)
+  lastMaintenanceKm   Float  @default(0)
   isPrimary       Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -72,6 +87,7 @@ model FixedCost {
   annualTaxes     Float    @default(0) // IPVA+licenciamento R$/ano
   maintenanceProvision Float @default(0) // R$/km
   tireProvision   Float    @default(0) // R$/km
+  washCostWeekly  Float    @default(0) // R$/semana
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

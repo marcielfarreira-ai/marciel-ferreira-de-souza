@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { LayoutDashboard, Users, CreditCard, ReceiptText, BarChart3, LogOut, Car, Menu, X, Gauge } from 'lucide-react'
+import { LayoutDashboard, Users, CreditCard, ReceiptText, BarChart3, LogOut, Car, Menu, X, Gauge, Settings } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -20,6 +20,7 @@ export default function Layout() {
     { to: '/app/closings', label: 'Fechamentos', icon: Gauge },
     { to: '/app/transactions', label: 'Transações', icon: ReceiptText },
     { to: '/app/reports', label: 'Relatórios', icon: BarChart3 },
+    { to: '/app/settings', label: 'Config. Veículo', icon: Settings },
   ]
   const links = isAdmin ? adminLinks : driverLinks
 

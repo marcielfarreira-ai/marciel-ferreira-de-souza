@@ -11,6 +11,7 @@ import DriverDashboard from './pages/driver/Dashboard'
 import DriverClosings from './pages/driver/Closings'
 import DriverTransactions from './pages/driver/Transactions'
 import DriverReports from './pages/driver/Reports'
+import DriverVehicleSettings from './pages/driver/VehicleSettings'
 
 function ProtectedRoute({ children, role }) {
   const { user, loading } = useAuth()
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="closings" element={<DriverClosings />} />
         <Route path="transactions" element={<DriverTransactions />} />
         <Route path="reports" element={<DriverReports />} />
+        <Route path="settings" element={<DriverVehicleSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" />} />
     </Routes>
