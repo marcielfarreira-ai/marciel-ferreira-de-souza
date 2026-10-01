@@ -37,8 +37,10 @@ export default function Onboarding() {
   const [energyMeter, setEnergyMeter] = useState('')
   // Step 3: Fuel prices
   const [fuelPrices, setFuelPrices] = useState({})
-  // Step 4: Fixed costs
-  const [fixedCosts, setFixedCosts] = useState({ installment: '', insurance: '', annualTaxes: '', maintenanceProvision: '', tireProvision: '' })
+  // Step 4: Fixed costs + maintenance/tire details
+  const [fixedCosts, setFixedCosts] = useState({ installment: '', insurance: '', annualTaxes: '' })
+  const [maintDetails, setMaintDetails] = useState({ cost: '', intervalKm: '' })
+  const [tireDetails, setTireDetails] = useState({ cost: '', intervalKm: '' })
   // Step 5: Previous vehicle
   const [prevVehicle, setPrevVehicle] = useState({ consumptionKmPerLiter: '', fuelPrice: '' })
 
@@ -75,12 +77,23 @@ export default function Onboarding() {
         .map(opt => ({ fuelType: opt.type, pricePerUnit: parseFloat(fuelPrices[opt.type]) || 0 }))
         .filter(fp => fp.pricePerUnit > 0)
 
+      const maintenanceProvision = (maintDetails.cost && maintDetails.intervalKm)
+        ? maintDetails.cost / maintDetails.intervalKm : 0
+      const tireProvision = (tireDetails.cost && tireDetails.intervalKm)
+        ? tireDetails.cost / tireDetails.intervalKm : 0
+
       const res = await api.post('/onboarding/complete', {
-        vehicle,
+        vehicle: {
+          ...vehicle,
+          tireCost: tireDetails.cost || 0,
+          tireIntervalKm: tireDetails.intervalKm || 0,
+          maintenanceCost: maintDetails.cost || 0,
+          maintenanceIntervalKm: maintDetails.intervalKm || 0,
+        },
         odometer,
         energyMeter: isElectric ? energyMeter : 0,
         fuelPrices: fuelPricesArray,
-        fixedCosts,
+        fixedCosts: { ...fixedCosts, maintenanceProvision, tireProvision },
         previousVehicle: prevVehicle.consumptionKmPerLiter ? prevVehicle : null,
       })
       updateUser({ ...user, onboardingCompleted: true })
@@ -253,21 +266,49 @@ export default function Onboarding() {
                   />
                 </div>
                 <div>
-                  <label className={labelClass}>Provisão para revisões (R$/km)</label>
+                  <label className={labelClass}>Valor da revisão (R$)</label>
                   <MaskedNumberInput
-                    value={fixedCosts.maintenanceProvision}
-                    onChange={v => setFixedCosts({ ...fixedCosts, maintenanceProvision: v })}
-                    variant="currency3"
+                    value={maintDetails.cost}
+                    onChange={v => setMaintDetails({ ...maintDetails, cost: v })}
+                    variant="currency"
                   />
                 </div>
-                <div className="md:col-span-2">
-                  <label className={labelClass}>Provisão para pneus (R$/km)</label>
+                <div>
+                  <label className={labelClass}>Intervalo para revisão (KM)</label>
                   <MaskedNumberInput
-                    value={fixedCosts.tireProvision}
-                    onChange={v => setFixedCosts({ ...fixedCosts, tireProvision: v })}
-                    variant="currency3"
+                    value={maintDetails.intervalKm}
+                    onChange={v => setMaintDetails({ ...maintDetails, intervalKm: v })}
+                    variant="km"
                   />
                 </div>
+                {maintDetails.cost > 0 && maintDetails.intervalKm > 0 && (
+                  <div className="md:col-span-2 bg-emerald-500/5 rounded-lg px-4 py-2.5 border border-emerald-500/20">
+                    <p className="text-xs text-slate-500">Provisão calculada (R$/km)</p>
+                    <p className="text-emerald-400 font-semibold text-sm">R$ {(maintDetails.cost / maintDetails.intervalKm).toFixed(4)}</p>
+                  </div>
+                )}
+                <div>
+                  <label className={labelClass}>Valor do jogo de pneus (R$)</label>
+                  <MaskedNumberInput
+                    value={tireDetails.cost}
+                    onChange={v => setTireDetails({ ...tireDetails, cost: v })}
+                    variant="currency"
+                  />
+                </div>
+                <div>
+                  <label className={labelClass}>Intervalo para troca de pneus (KM)</label>
+                  <MaskedNumberInput
+                    value={tireDetails.intervalKm}
+                    onChange={v => setTireDetails({ ...tireDetails, intervalKm: v })}
+                    variant="km"
+                  />
+                </div>
+                {tireDetails.cost > 0 && tireDetails.intervalKm > 0 && (
+                  <div className="md:col-span-2 bg-emerald-500/5 rounded-lg px-4 py-2.5 border border-emerald-500/20">
+                    <p className="text-xs text-slate-500">Provisão calculada (R$/km)</p>
+                    <p className="text-emerald-400 font-semibold text-sm">R$ {(tireDetails.cost / tireDetails.intervalKm).toFixed(4)}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

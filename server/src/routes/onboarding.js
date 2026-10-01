@@ -34,6 +34,10 @@ router.post('/complete', async (req, res) => {
       tankCapacity: parseFloat(vehicle.tankCapacity) || 0,
       initialOdometer: parseFloat(odometer) || 0,
       initialEnergyMeter: parseFloat(energyMeter) || 0,
+      tireCost: parseFloat(vehicle.tireCost) || 0,
+      tireIntervalKm: parseFloat(vehicle.tireIntervalKm) || 0,
+      maintenanceCost: parseFloat(vehicle.maintenanceCost) || 0,
+      maintenanceIntervalKm: parseFloat(vehicle.maintenanceIntervalKm) || 0,
       isPrimary: true,
     }
   })
