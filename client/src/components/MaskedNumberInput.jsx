@@ -86,8 +86,8 @@ export default function MaskedNumberInput({
   const finalDecimals = decimals !== undefined ? decimals : cfg.decimals
   const mode = cfg.mode
 
-  const [digits, setDigits] = useState('')   // fixed mode
-  const [rawText, setRawText] = useState('') // natural mode
+  const [digits, setDigits] = useState(() => mode === 'fixed' ? numberToFixedDigits(value, finalDecimals) : '')   // fixed mode
+  const [rawText, setRawText] = useState(() => mode === 'natural' ? numberToRawText(value, finalDecimals) : '') // natural mode
   const lastEmitted = useRef(value)
   const inputRef = useRef(null)
 
