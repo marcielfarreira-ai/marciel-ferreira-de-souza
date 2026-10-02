@@ -34,8 +34,10 @@ function formatFixed(digits, decimals) {
 }
 
 function numberToFixedDigits(num, decimals) {
-  if (num == null || isNaN(num)) return ''
-  const fixed = num.toFixed(decimals)
+  if (num == null || num === '') return ''
+  const n = typeof num === 'string' ? parseFloat(num) : num
+  if (isNaN(n)) return ''
+  const fixed = n.toFixed(decimals)
   const [i, d] = fixed.split('.')
   return (i + d).replace(/^0+/, '') || ''
 }
@@ -57,8 +59,10 @@ function formatNatural(rawText) {
 }
 
 function numberToRawText(num, decimals) {
-  if (num == null || isNaN(num)) return ''
-  return String(parseFloat(num.toFixed(decimals)))
+  if (num == null || num === '') return ''
+  const n = typeof num === 'string' ? parseFloat(num) : num
+  if (isNaN(n)) return ''
+  return String(parseFloat(n.toFixed(decimals)))
 }
 
 function rawTextToNumber(rawText) {

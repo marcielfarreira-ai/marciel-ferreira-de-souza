@@ -69,6 +69,26 @@ export default function Onboarding() {
     if (step > 1) setStep(step - 1)
   }
 
+  const handleSkip = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await api.post('/onboarding/complete', {
+        vehicle: { nickname: 'Meu Veículo', propulsionType: 'electric', tankCapacity: 0 },
+        odometer: 0,
+        energyMeter: 0,
+        fuelPrices: [],
+        fixedCosts: { installment: 0, insurance: 0, annualTaxes: 0, maintenanceProvision: 0, tireProvision: 0 },
+        previousVehicle: null,
+      })
+      updateUser({ ...user, onboardingCompleted: true })
+      navigate('/app')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erro ao pular onboarding')
+    }
+    setLoading(false)
+  }
+
   const handleFinish = async () => {
     setLoading(true)
     setError('')
@@ -342,6 +362,16 @@ export default function Onboarding() {
                   <p className="text-sm text-slate-400">Com esses dados, o app calculará automaticamente quanto você economiza rodando com o veículo atual em comparação ao anterior.</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Skip onboarding (step 1 only) */}
+          {step === 1 && (
+            <div className="text-center mt-4">
+              <button onClick={handleSkip} disabled={loading}
+                className="text-sm text-slate-500 hover:text-slate-300 transition underline underline-offset-2">
+                Pular pré-cadastro e configurar depois
+              </button>
             </div>
           )}
 
