@@ -3,7 +3,7 @@ import api from '../../api'
 import MaskedNumberInput from '../../components/MaskedNumberInput'
 import {
   Car, Gauge, Battery, Fuel, DollarSign, Wrench, Calendar, Check,
-  RefreshCw, Zap, Leaf, Droplet, Settings, Save, AlertTriangle,
+  RefreshCw, Zap, Leaf, Droplet, Settings, Save, AlertTriangle, Trash2, X,
 } from 'lucide-react'
 
 const PROPULSION_TYPES = [
@@ -60,6 +60,11 @@ export default function VehicleSettings() {
   // Maintenance reset state
   const [resetLoading, setResetLoading] = useState(null)
   const [resetFeedback, setResetFeedback] = useState(null)
+
+  // Full data reset state
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
 
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type })
@@ -135,6 +140,20 @@ export default function VehicleSettings() {
       showToast(err.response?.data?.error || 'Erro ao salvar configurações', 'error')
     }
     setSaving(false)
+  }
+
+  const handleFullReset = async () => {
+    if (confirmText !== 'RESET') return
+    setResetting(true)
+    try {
+      await api.delete('/settings/reset')
+      showToast('Dados resetados com sucesso! Redirecionando...')
+      setShowResetModal(false)
+      setTimeout(() => { window.location.href = '/onboarding' }, 1500)
+    } catch (err) {
+      showToast(err.response?.data?.error || 'Erro ao resetar dados', 'error')
+    }
+    setResetting(false)
   }
 
   const handleResetMaintenance = async (type, label) => {
@@ -492,6 +511,56 @@ export default function VehicleSettings() {
           </div>
         </div>
       </div>
+
+      {/* ── Danger Zone: Reset all data ── */}
+      <div className="bg-red-500/5 rounded-xl p-5 border border-red-500/20 mb-5">
+        <h2 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-red-400" /> Zona de Perigo
+        </h2>
+        <p className="text-sm text-slate-400 mb-4">
+          Apaga <strong className="text-slate-300">todos</strong> os seus dados: veículos, fechamentos, transações, preços de combustível, custos fixos e configurações. Esta ação é <strong className="text-red-400">irreversível</strong>.
+        </p>
+        <button onClick={() => setShowResetModal(true)}
+          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 hover:border-red-500/50 text-red-400 px-4 py-2.5 rounded-lg text-sm font-medium transition">
+          <Trash2 className="w-4 h-4" /> Resetar Todos os Dados
+        </button>
+      </div>
+
+      {/* ── Reset Confirmation Modal ── */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => !resetting && setShowResetModal(false)}>
+          <div className="bg-slate-900 rounded-xl p-6 w-full max-w-md border border-red-500/30" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-400" /> Confirmar Reset
+              </h2>
+              {!resetting && (
+                <button onClick={() => setShowResetModal(false)}><X className="w-5 h-5 text-slate-400" /></button>
+              )}
+            </div>
+            <p className="text-sm text-slate-300 mb-4">
+              Você está prestes a apagar <strong className="text-red-400">todos os seus dados</strong>. Esta ação não pode ser desfeita.
+            </p>
+            <p className="text-sm text-slate-400 mb-2">
+              Digite <strong className="text-white">RESET</strong> para confirmar:
+            </p>
+            <input type="text" value={confirmText} disabled={resetting}
+              onChange={e => setConfirmText(e.target.value)}
+              className="w-full bg-slate-800 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 mb-4 uppercase"
+              placeholder="RESET" />
+            <div className="flex gap-3">
+              <button onClick={() => setShowResetModal(false)} disabled={resetting}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={handleFullReset} disabled={resetting || confirmText !== 'RESET'}
+                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition disabled:opacity-50 disabled:cursor-not-allowed">
+                {resetting ? 'Resetando...' : 'Apagar Tudo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Save Button (fixed footer) ── */}
       <div className="fixed bottom-0 left-0 right-0 md:left-64 bg-slate-900/95 backdrop-blur border-t border-slate-800 px-4 md:px-8 py-4 z-40">

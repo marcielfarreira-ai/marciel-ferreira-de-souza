@@ -167,4 +167,22 @@ router.post('/reset-maintenance', async (req, res) => {
   res.json({ success: true, currentOdometer, type })
 })
 
+// DELETE all user data (reset)
+router.delete('/reset', async (req, res) => {
+  const userId = req.user.id
+
+  // Delete in dependency order (children first)
+  await prisma.transaction.deleteMany({ where: { userId } })
+  await prisma.dailyClosing.deleteMany({ where: { userId } })
+  await prisma.fuelPrice.deleteMany({ where: { userId } })
+  await prisma.fixedCost.deleteMany({ where: { userId } })
+  await prisma.previousVehicle.deleteMany({ where: { userId } })
+  await prisma.vehicle.deleteMany({ where: { userId } })
+
+  // Mark onboarding as incomplete so user re-does the wizard
+  await prisma.user.update({ where: { id: userId }, data: { onboardingCompleted: false } })
+
+  res.json({ success: true })
+})
+
 module.exports = router
