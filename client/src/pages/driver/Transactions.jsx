@@ -5,7 +5,7 @@ import MaskedNumberInput from '../../components/MaskedNumberInput'
 
 const INCOME_CATEGORIES = ['Corridas', 'Gorjetas', 'Bônus', 'Outros']
 const EXPENSE_CATEGORIES = ['Combustível', 'Manutenção', 'Alimentação', 'Limpeza', 'Pedágio', 'Outros']
-const PLATFORMS = ['Uber', '99', 'inDriver', 'Outros']
+const PLATFORM_SUGGESTIONS = ['Uber', '99', 'inDriver', 'Lady Driver', 'Black+Yellow', 'Blablacar', 'Mohvin', 'Cabify', 'Táxi App']
 
 export default function DriverTransactions() {
   const [transactions, setTransactions] = useState([])
@@ -149,11 +149,11 @@ export default function DriverTransactions() {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>Plataforma</label>
-                <select value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass}>
-                  <option value="">Nenhuma</option>
-                  {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
+                <label className={labelClass}>Plataforma / App</label>
+                <input type="text" list="platform-suggestions" value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className={inputClass} placeholder="Ex: Uber, 99, inDriver..." />
+                <datalist id="platform-suggestions">
+                  {PLATFORM_SUGGESTIONS.map(p => <option key={p} value={p} />)}
+                </datalist>
               </div>
               <div>
                 <label className={labelClass}>Data</label>

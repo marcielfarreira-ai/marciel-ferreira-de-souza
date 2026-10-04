@@ -165,7 +165,7 @@ router.get('/closings', async (req, res) => {
   const closings = await prisma.dailyClosing.findMany({
     where,
     orderBy: { date: 'desc' },
-    include: { vehicle: true }
+    include: { vehicle: true, transactions: true }
   })
   res.json({ closings })
 })
@@ -173,7 +173,7 @@ router.get('/closings', async (req, res) => {
 // POST create daily closing with auto-calculation
 router.post('/closings', async (req, res) => {
   const userId = req.user.id
-  const { vehicleId, date, odometerReading, energyMeterReading, grossRevenue, streetExpenses, fuelEntries, notes } = req.body
+  const { vehicleId, date, odometerReading, energyMeterReading, grossRevenue, streetExpenses, fuelEntries, notes, transactions } = req.body
 
   const vehicle = await prisma.vehicle.findFirst({ where: { id: vehicleId, userId } })
   if (!vehicle) return res.status(400).json({ error: 'Veículo não encontrado' })
@@ -232,8 +232,19 @@ router.post('/closings', async (req, res) => {
       costPerKm,
       profitPerKm,
       notes: notes || null,
+      transactions: Array.isArray(transactions) && transactions.length > 0 ? {
+        create: transactions.map(t => ({
+          userId,
+          type: t.type || 'income',
+          amount: parseFloat(t.amount) || 0,
+          category: t.category || 'Corridas',
+          description: t.description || null,
+          platform: t.platform || null,
+          date: new Date(date),
+        }))
+      } : undefined,
     },
-    include: { vehicle: true }
+    include: { vehicle: true, transactions: true }
   })
 
   res.json({ closing })
@@ -241,10 +252,29 @@ router.post('/closings', async (req, res) => {
 
 // PUT update closing
 router.put('/closings/:id', async (req, res) => {
-  const { date, odometerReading, energyMeterReading, grossRevenue, streetExpenses, fuelEntries, notes } = req.body
+  const { date, odometerReading, energyMeterReading, grossRevenue, streetExpenses, fuelEntries, notes, transactions } = req.body
   const userId = req.user.id
   const existing = await prisma.dailyClosing.findFirst({ where: { id: req.params.id, userId } })
   if (!existing) return res.status(404).json({ error: 'Fechamento não encontrado' })
+
+  // Replace linked transactions
+  if (Array.isArray(transactions)) {
+    await prisma.transaction.deleteMany({ where: { closingId: existing.id } })
+    if (transactions.length > 0) {
+      await prisma.transaction.createMany({
+        data: transactions.map(t => ({
+          userId,
+          closingId: existing.id,
+          type: t.type || 'income',
+          amount: parseFloat(t.amount) || 0,
+          category: t.category || 'Corridas',
+          description: t.description || null,
+          platform: t.platform || null,
+          date: new Date(date),
+        }))
+      })
+    }
+  }
 
   // Recalculate
   const vehicle = await prisma.vehicle.findFirst({ where: { id: existing.vehicleId, userId } })
@@ -283,7 +313,7 @@ router.put('/closings/:id', async (req, res) => {
       totalOperationalCost, netProfit, revenuePerKm, costPerKm, profitPerKm,
       notes: notes || null,
     },
-    include: { vehicle: true }
+    include: { vehicle: true, transactions: true }
   })
   res.json({ closing })
 })
@@ -374,6 +404,59 @@ router.get('/reports', async (req, res) => {
   }
 
   res.json(reportData)
+})
+
+// GET transactions
+router.get('/transactions', async (req, res) => {
+  const { type } = req.query
+  const where = { userId: req.user.id }
+  if (type) where.type = type
+  const transactions = await prisma.transaction.findMany({
+    where,
+    orderBy: { date: 'desc' },
+    include: { closing: { select: { id: true, date: true } } }
+  })
+  res.json({ transactions })
+})
+
+// POST transaction
+router.post('/transactions', async (req, res) => {
+  const { type, amount, category, description, platform, date } = req.body
+  const transaction = await prisma.transaction.create({
+    data: {
+      userId: req.user.id,
+      type,
+      amount: parseFloat(amount) || 0,
+      category,
+      description: description || null,
+      platform: platform || null,
+      date: new Date(date),
+    }
+  })
+  res.json({ transaction })
+})
+
+// PUT transaction
+router.put('/transactions/:id', async (req, res) => {
+  const { type, amount, category, description, platform, date } = req.body
+  const transaction = await prisma.transaction.update({
+    where: { id: req.params.id, userId: req.user.id },
+    data: {
+      type,
+      amount: parseFloat(amount) || 0,
+      category,
+      description: description || null,
+      platform: platform || null,
+      date: new Date(date),
+    }
+  })
+  res.json({ transaction })
+})
+
+// DELETE transaction
+router.delete('/transactions/:id', async (req, res) => {
+  await prisma.transaction.delete({ where: { id: req.params.id, userId: req.user.id } })
+  res.json({ success: true })
 })
 
 module.exports = router

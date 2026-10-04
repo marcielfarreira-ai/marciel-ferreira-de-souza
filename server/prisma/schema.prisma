@@ -126,12 +126,15 @@ model DailyClosing {
   notes          String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  transactions    Transaction[]
 }
 
 model Transaction {
   id          String   @id @default(cuid())
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  closingId   String?
+  closing     DailyClosing? @relation(fields: [closingId], references: [id], onDelete: SetNull)
   type        String
   amount      Float
   category    String

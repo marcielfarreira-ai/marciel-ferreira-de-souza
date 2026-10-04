@@ -10,6 +10,10 @@ const FUEL_TYPES = [
   { value: 'gnv', label: 'GNV (m³)' },
 ]
 
+const INCOME_CATEGORIES = ['Corridas', 'Gorjetas', 'Bônus', 'Outros']
+const EXPENSE_CATEGORIES = ['Combustível', 'Manutenção', 'Alimentação', 'Limpeza', 'Pedágio', 'Outros']
+const PLATFORM_SUGGESTIONS = ['Uber', '99', 'inDriver', 'Lady Driver', 'Black+Yellow', 'Blablacar', 'Mohvin', 'Cabify', 'Táxi App']
+
 export default function DriverClosings() {
   const [closings, setClosings] = useState([])
   const [vehicles, setVehicles] = useState([])
@@ -21,6 +25,7 @@ export default function DriverClosings() {
     grossRevenue: '', streetExpenses: '', notes: ''
   })
   const [fuelEntries, setFuelEntries] = useState([])
+  const [transactions, setTransactions] = useState([])
 
   const load = async () => {
     const [c, v] = await Promise.all([api.get('/finance/closings'), api.get('/finance/vehicles')])
@@ -53,6 +58,23 @@ export default function DriverClosings() {
     setFuelEntries(fuelEntries.filter((_, i) => i !== index))
   }
 
+  const addTransaction = () => {
+    setTransactions([...transactions, { type: 'income', amount: '', category: 'Corridas', platform: '', description: '' }])
+  }
+
+  const updateTransaction = (index, field, value) => {
+    const updated = [...transactions]
+    updated[index][field] = value
+    if (field === 'type') {
+      updated[index].category = value === 'income' ? 'Corridas' : 'Combustível'
+    }
+    setTransactions(updated)
+  }
+
+  const removeTransaction = (index) => {
+    setTransactions(transactions.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     const data = {
@@ -67,6 +89,12 @@ export default function DriverClosings() {
         pricePerUnit: parseFloat(fe.pricePerUnit) || 0,
         amount: parseFloat(fe.amount) || 0,
       })),
+      transactions: transactions
+        .filter(t => parseFloat(t.amount) > 0)
+        .map(t => ({
+          ...t,
+          amount: parseFloat(t.amount) || 0,
+        })),
     }
     if (editing) {
       await api.put(`/finance/closings/${editing.id}`, data)
@@ -77,6 +105,7 @@ export default function DriverClosings() {
     setEditing(null)
     setForm({ vehicleId: vehicles[0]?.id || '', date: today, odometerReading: '', energyMeterReading: '', grossRevenue: '', streetExpenses: '', notes: '' })
     setFuelEntries([])
+    setTransactions([])
     load()
   }
 
@@ -92,6 +121,9 @@ export default function DriverClosings() {
       grossRevenue: String(c.grossRevenue), streetExpenses: String(c.streetExpenses), notes: c.notes || ''
     })
     setFuelEntries(Array.isArray(c.fuelEntries) ? c.fuelEntries : [])
+    setTransactions(Array.isArray(c.transactions) ? c.transactions.map(t => ({
+      type: t.type, amount: String(t.amount), category: t.category, platform: t.platform || '', description: t.description || ''
+    })) : [])
     setShowModal(true)
   }
 
@@ -99,6 +131,7 @@ export default function DriverClosings() {
     setEditing(null)
     setForm({ vehicleId: vehicles[0]?.id || '', date: today, odometerReading: '', energyMeterReading: '', grossRevenue: '', streetExpenses: '', notes: '' })
     setFuelEntries([])
+    setTransactions([])
     setShowModal(true)
   }
 
@@ -279,6 +312,54 @@ export default function DriverClosings() {
                   )}
                 </div>
                 <p className="text-xs text-slate-500 mt-1">Suporte a múltiplos combustíveis no mesmo dia (ex: Etanol + Gasolina)</p>
+              </div>
+
+              {/* Transactions within closing */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className={labelClass + ' mb-0'}>Transações do Dia</label>
+                  <button type="button" onClick={addTransaction}
+                    className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-medium">
+                    <Plus className="w-3 h-3" /> Adicionar
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {transactions.map((t, i) => (
+                    <div key={i} className="bg-slate-800 rounded-lg p-3 space-y-2">
+                      <div className="flex gap-2 items-center">
+                        <button type="button" onClick={() => updateTransaction(i, 'type', 'income')}
+                          className={`px-3 py-1.5 rounded text-xs font-medium transition ${t.type === 'income' ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-400'}`}>Receita</button>
+                        <button type="button" onClick={() => updateTransaction(i, 'type', 'expense')}
+                          className={`px-3 py-1.5 rounded text-xs font-medium transition ${t.type === 'expense' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-400'}`}>Despesa</button>
+                        <div className="flex-1" />
+                        <button type="button" onClick={() => removeTransaction(i)} className="p-1 text-slate-500 hover:text-red-400">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <MaskedNumberInput
+                          value={t.amount}
+                          onChange={v => updateTransaction(i, 'amount', v)}
+                          variant="currency"
+                          size="sm"
+                          className="w-full"
+                        />
+                        <select value={t.category} onChange={e => updateTransaction(i, 'category', e.target.value)}
+                          className="bg-slate-700 text-white rounded px-2 py-1.5 text-xs focus:outline-none">
+                          {(t.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <input type="text" list="closing-platform-suggestions" value={t.platform} onChange={e => updateTransaction(i, 'platform', e.target.value)}
+                        className="w-full bg-slate-700 text-white rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500" placeholder="Plataforma (Uber, 99, inDriver...)" />
+                      <datalist id="closing-platform-suggestions">
+                        {PLATFORM_SUGGESTIONS.map(p => <option key={p} value={p} />)}
+                      </datalist>
+                    </div>
+                  ))}
+                  {transactions.length === 0 && (
+                    <p className="text-xs text-slate-500 text-center py-2">Nenhuma transação. Clique em "Adicionar" para registrar corridas e gastos por plataforma.</p>
+                  )}
+                </div>
               </div>
 
               <div>
