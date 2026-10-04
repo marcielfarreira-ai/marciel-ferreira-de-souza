@@ -81,7 +81,7 @@ export default function MaskedNumberInput({
   decimals,
   icon: Icon,
   size = 'default',
-  className = '',
+  className = 'w-full',
   ...rest
 }) {
   const cfg = VARIANTS[variant] || VARIANTS.currency
@@ -214,7 +214,7 @@ export default function MaskedNumberInput({
   const inputText = isSm ? 'text-xs py-1.5' : 'text-sm py-2.5'
 
   return (
-    <div className={`flex items-center w-full ${containerBase} ${className}`}>
+    <div className={`flex items-center ${containerBase} ${className}`}>
       {Icon && (
         <Icon className={`flex-shrink-0 ml-3 ${iconSize} text-slate-500 pointer-events-none`} />
       )}
