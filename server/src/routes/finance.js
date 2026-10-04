@@ -104,6 +104,22 @@ router.get('/dashboard', async (req, res) => {
     ].filter(Boolean)
   }
 
+  // Provisions (maintenance + tires)
+  let provisions = null
+  {
+    const fc = await prisma.fixedCost.findFirst({ where: { userId } })
+    if (fc && (fc.maintenanceProvision > 0 || fc.tireProvision > 0)) {
+      provisions = {
+        maintenancePerKm: fc.maintenanceProvision,
+        tirePerKm: fc.tireProvision,
+        totalPerKm: fc.maintenanceProvision + fc.tireProvision,
+        monthlyMaintenance: fc.maintenanceProvision * totalKm,
+        monthlyTire: fc.tireProvision * totalKm,
+        monthlyTotal: (fc.maintenanceProvision + fc.tireProvision) * totalKm,
+      }
+    }
+  }
+
   // Economy comparison
   let economyComparison = null
   const prevVehicle = await prisma.previousVehicle.findFirst({ where: { userId } })
@@ -134,6 +150,7 @@ router.get('/dashboard', async (req, res) => {
     vehicle,
     maintenanceAlerts,
     economyComparison,
+    provisions,
   })
 })
 

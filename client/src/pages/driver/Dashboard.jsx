@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import api from '../../api'
-import { TrendingUp, TrendingDown, Wallet, Gauge, AlertTriangle, Car, Leaf, Zap, Fuel } from 'lucide-react'
+import { TrendingUp, TrendingDown, Wallet, Gauge, AlertTriangle, Car, Leaf, Zap, Fuel, Wrench, CircleDot } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from 'recharts'
 
 const PROPULSION_ICONS = {
@@ -56,6 +56,43 @@ export default function DriverDashboard() {
           )
         })}
       </div>
+
+      {/* Provisions summary */}
+      {data.provisions && (
+        <div className="bg-slate-900 rounded-xl p-5 border border-slate-800 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Wallet className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-semibold text-white">Provisões para Reserva</h2>
+            <span className="text-xs text-slate-500 ml-auto">Com base nos KM do mês</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Wrench className="w-4 h-4 text-blue-400" />
+                <span className="text-sm text-slate-300">Manutenção</span>
+              </div>
+              <p className="text-2xl font-bold text-white">R$ {data.provisions.monthlyMaintenance.toFixed(2)}</p>
+              <p className="text-xs text-slate-500 mt-1">R$ {data.provisions.maintenancePerKm.toFixed(4)}/km</p>
+            </div>
+            <div className="bg-slate-950 rounded-lg p-4 border border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <CircleDot className="w-4 h-4 text-purple-400" />
+                <span className="text-sm text-slate-300">Pneus</span>
+              </div>
+              <p className="text-2xl font-bold text-white">R$ {data.provisions.monthlyTire.toFixed(2)}</p>
+              <p className="text-xs text-slate-500 mt-1">R$ {data.provisions.tirePerKm.toFixed(4)}/km</p>
+            </div>
+            <div className="bg-amber-500/5 rounded-lg p-4 border border-amber-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="w-4 h-4 text-amber-400" />
+                <span className="text-sm text-amber-400 font-medium">Total a Reservar</span>
+              </div>
+              <p className="text-2xl font-bold text-amber-400">R$ {data.provisions.monthlyTotal.toFixed(2)}</p>
+              <p className="text-xs text-slate-500 mt-1">R$ {data.provisions.totalPerKm.toFixed(4)}/km</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Maintenance alerts */}
       {data.maintenanceAlerts && data.maintenanceAlerts.length > 0 && (
