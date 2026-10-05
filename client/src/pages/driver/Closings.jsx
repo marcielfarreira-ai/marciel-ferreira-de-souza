@@ -188,39 +188,39 @@ export default function DriverClosings() {
         ))}
       </div>
 
-      <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-hidden">
-        <table className="w-full">
+      <div className="hidden md:block bg-slate-900 rounded-xl border border-slate-800 overflow-x-auto">
+        <table className="w-full table-fixed">
           <thead className="bg-slate-800/50 border-b border-slate-800">
             <tr>
-              <th className="text-left text-xs font-semibold text-slate-400 uppercase px-6 py-3">Data</th>
-              <th className="text-left text-xs font-semibold text-slate-400 uppercase px-6 py-3">Veículo</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">KM Rodados</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Energia/Comb.</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Faturamento</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Custo Total</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Lucro Líquido</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Lucro/KM</th>
-              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Ações</th>
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Data</th>
+              <th className="text-left text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Veículo</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">KM</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Combustível</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Faturamento</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Custo</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Lucro</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">R$/KM</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-2 py-2.5">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
             {closings.map(c => (
               <tr key={c.id} className="hover:bg-slate-800/30">
-                <td className="px-6 py-4 text-sm text-slate-300">{new Date(c.date).toLocaleDateString('pt-BR')}</td>
-                <td className="px-6 py-4 text-sm text-slate-300">{c.vehicle?.nickname || '—'}</td>
-                <td className="px-6 py-4 text-sm text-right text-slate-300">{c.kmDriven.toFixed(1)}</td>
-                <td className="px-6 py-4 text-sm text-right text-slate-300">
+                <td className="px-2 py-2.5 text-xs text-slate-300 whitespace-nowrap">{new Date(c.date).toLocaleDateString('pt-BR')}</td>
+                <td className="px-2 py-2.5 text-xs text-slate-300 whitespace-nowrap">{c.vehicle?.nickname || '—'}</td>
+                <td className="px-2 py-2.5 text-xs text-right text-slate-300 whitespace-nowrap">{c.kmDriven.toFixed(1)}</td>
+                <td className="px-2 py-2.5 text-xs text-right text-slate-300">
                   {c.vehicle?.propulsionType === 'electric'
-                    ? <span>{c.energyConsumed?.toFixed(1) || '0.0'} kWh · <span className="text-red-400">R$ {c.fuelCost.toFixed(2)}</span></span>
+                    ? <span>{c.energyConsumed?.toFixed(1) || '0.0'} kWh<br /><span className="text-red-400">R$ {c.fuelCost.toFixed(2)}</span></span>
                     : <span className="text-red-400">R$ {c.fuelCost.toFixed(2)}</span>}
                 </td>
-                <td className="px-6 py-4 text-sm text-right text-emerald-400">R$ {c.grossRevenue.toFixed(2)}</td>
-                <td className="px-6 py-4 text-sm text-right text-red-400">R$ {c.totalOperationalCost.toFixed(2)}</td>
-                <td className={`px-6 py-4 text-sm text-right font-semibold ${c.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>R$ {c.netProfit.toFixed(2)}</td>
-                <td className="px-6 py-4 text-sm text-right text-slate-400">R$ {c.profitPerKm.toFixed(2)}</td>
-                <td className="px-6 py-4 text-right">
-                  <button onClick={() => openEdit(c)} className="p-1 text-slate-400 hover:text-white mr-2"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(c)} className="p-1 text-slate-400 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                <td className="px-2 py-2.5 text-xs text-right text-emerald-400 whitespace-nowrap">R$ {c.grossRevenue.toFixed(2)}</td>
+                <td className="px-2 py-2.5 text-xs text-right text-red-400 whitespace-nowrap">R$ {c.totalOperationalCost.toFixed(2)}</td>
+                <td className={`px-2 py-2.5 text-xs text-right font-semibold whitespace-nowrap ${c.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>R$ {c.netProfit.toFixed(2)}</td>
+                <td className="px-2 py-2.5 text-xs text-right text-slate-400 whitespace-nowrap">R$ {c.profitPerKm.toFixed(2)}</td>
+                <td className="px-2 py-2.5 text-right whitespace-nowrap">
+                  <button onClick={() => openEdit(c)} className="p-1 text-slate-400 hover:text-white"><Edit className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => handleDelete(c)} className="p-1 text-slate-400 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                 </td>
               </tr>
             ))}
