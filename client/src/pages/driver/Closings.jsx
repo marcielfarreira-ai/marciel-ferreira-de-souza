@@ -26,11 +26,17 @@ export default function DriverClosings() {
   })
   const [fuelEntries, setFuelEntries] = useState([])
   const [transactions, setTransactions] = useState([])
+  const [fuelPrices, setFuelPrices] = useState({})
 
   const load = async () => {
-    const [c, v] = await Promise.all([api.get('/finance/closings'), api.get('/finance/vehicles')])
+    const [c, v, s] = await Promise.all([api.get('/finance/closings'), api.get('/finance/vehicles'), api.get('/settings')])
     setClosings(c.data.closings)
     setVehicles(v.data.vehicles)
+    if (s.data.fuelPrices) {
+      const fp = {}
+      s.data.fuelPrices.forEach(p => { fp[p.fuelType] = p.pricePerUnit })
+      setFuelPrices(fp)
+    }
     if (v.data.vehicles.length > 0 && !form.vehicleId) {
       const primary = v.data.vehicles.find(vv => vv.isPrimary) || v.data.vehicles[0]
       setForm(f => ({ ...f, vehicleId: primary.id }))
@@ -39,14 +45,20 @@ export default function DriverClosings() {
   useEffect(() => { load() }, [])
 
   const addFuelEntry = () => {
-    setFuelEntries([...fuelEntries, { fuelType: 'electric_kwh', quantity: '', pricePerUnit: '', amount: '' }])
+    const defaultType = 'electric_kwh'
+    const refPrice = fuelPrices[defaultType] || 0
+    setFuelEntries([...fuelEntries, { fuelType: defaultType, quantity: '', pricePerUnit: refPrice, amount: '0.00' }])
   }
 
   const updateFuelEntry = (index, field, value) => {
     const updated = [...fuelEntries]
     updated[index][field] = value
+    // When fuel type changes, update price to reference price
+    if (field === 'fuelType') {
+      updated[index].pricePerUnit = fuelPrices[value] || 0
+    }
     // Auto-calculate amount
-    if (field === 'quantity' || field === 'pricePerUnit') {
+    if (field === 'quantity' || field === 'pricePerUnit' || field === 'fuelType') {
       const qty = parseFloat(updated[index].quantity) || 0
       const price = parseFloat(updated[index].pricePerUnit) || 0
       updated[index].amount = (qty * price).toFixed(2)
@@ -164,6 +176,10 @@ export default function DriverClosings() {
             </div>
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-slate-500">KM:</span> <span className="text-white">{c.kmDriven.toFixed(1)}</span></div>
+              {c.vehicle?.propulsionType === 'electric' && (
+                <div><span className="text-slate-500">Energia:</span> <span className="text-white">{c.energyConsumed?.toFixed(1) || '0.0'} kWh</span></div>
+              )}
+              <div><span className="text-slate-500">Comb.:</span> <span className="text-red-400">R$ {c.fuelCost.toFixed(2)}</span></div>
               <div><span className="text-slate-500">Fat.:</span> <span className="text-emerald-400">R$ {c.grossRevenue.toFixed(2)}</span></div>
               <div><span className="text-slate-500">Custo:</span> <span className="text-red-400">R$ {c.totalOperationalCost.toFixed(2)}</span></div>
               <div><span className="text-slate-500">Lucro:</span> <span className={c.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}>R$ {c.netProfit.toFixed(2)}</span></div>
@@ -179,6 +195,7 @@ export default function DriverClosings() {
               <th className="text-left text-xs font-semibold text-slate-400 uppercase px-6 py-3">Data</th>
               <th className="text-left text-xs font-semibold text-slate-400 uppercase px-6 py-3">Veículo</th>
               <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">KM Rodados</th>
+              <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Energia/Comb.</th>
               <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Faturamento</th>
               <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Custo Total</th>
               <th className="text-right text-xs font-semibold text-slate-400 uppercase px-6 py-3">Lucro Líquido</th>
@@ -192,6 +209,11 @@ export default function DriverClosings() {
                 <td className="px-6 py-4 text-sm text-slate-300">{new Date(c.date).toLocaleDateString('pt-BR')}</td>
                 <td className="px-6 py-4 text-sm text-slate-300">{c.vehicle?.nickname || '—'}</td>
                 <td className="px-6 py-4 text-sm text-right text-slate-300">{c.kmDriven.toFixed(1)}</td>
+                <td className="px-6 py-4 text-sm text-right text-slate-300">
+                  {c.vehicle?.propulsionType === 'electric'
+                    ? <span>{c.energyConsumed?.toFixed(1) || '0.0'} kWh · <span className="text-red-400">R$ {c.fuelCost.toFixed(2)}</span></span>
+                    : <span className="text-red-400">R$ {c.fuelCost.toFixed(2)}</span>}
+                </td>
                 <td className="px-6 py-4 text-sm text-right text-emerald-400">R$ {c.grossRevenue.toFixed(2)}</td>
                 <td className="px-6 py-4 text-sm text-right text-red-400">R$ {c.totalOperationalCost.toFixed(2)}</td>
                 <td className={`px-6 py-4 text-sm text-right font-semibold ${c.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>R$ {c.netProfit.toFixed(2)}</td>

@@ -178,7 +178,7 @@ export default function DriverDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">{new Date(c.date).toLocaleDateString('pt-BR')}</p>
-                    <p className="text-xs text-slate-500">{c.kmDriven.toFixed(1)} km · R$ {c.profitPerKm.toFixed(2)}/km</p>
+                    <p className="text-xs text-slate-500">{c.kmDriven.toFixed(1)} km{data.vehicle?.propulsionType === 'electric' ? ` · ${c.energyConsumed?.toFixed(1) || 0} kWh · R$ ${c.fuelCost?.toFixed(2) || 0}` : ` · R$ ${c.fuelCost?.toFixed(2) || 0} comb.`} · R$ {c.profitPerKm.toFixed(2)}/km</p>
                   </div>
                 </div>
                 <span className={`text-sm font-semibold ${c.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
