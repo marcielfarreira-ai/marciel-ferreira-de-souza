@@ -324,6 +324,35 @@ router.delete('/closings/:id', async (req, res) => {
   res.json({ success: true })
 })
 
+// GET day-offs for a month
+router.get('/day-offs', async (req, res) => {
+  const { month } = req.query
+  const where = { userId: req.user.id }
+  if (month) {
+    const [y, m] = month.split('-')
+    where.date = { gte: new Date(+y, +m - 1, 1), lt: new Date(+y, +m, 1) }
+  }
+  const dayOffs = await prisma.dayOff.findMany({ where, orderBy: { date: 'asc' } })
+  res.json({ dayOffs })
+})
+
+// POST mark day off
+router.post('/day-offs', async (req, res) => {
+  const { date, note } = req.body
+  const dayOff = await prisma.dayOff.upsert({
+    where: { userId_date: { userId: req.user.id, date: new Date(date) } },
+    update: { note: note || null },
+    create: { userId: req.user.id, date: new Date(date), note: note || null },
+  })
+  res.json({ dayOff })
+})
+
+// DELETE day off
+router.delete('/day-offs/:id', async (req, res) => {
+  await prisma.dayOff.delete({ where: { id: req.params.id, userId: req.user.id } })
+  res.json({ success: true })
+})
+
 // GET vehicles
 router.get('/vehicles', async (req, res) => {
   const vehicles = await prisma.vehicle.findMany({ where: { userId: req.user.id }, orderBy: { createdAt: 'desc' } })

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import api from '../../api'
-import { Plus, X, Trash2, Edit, Gauge, Battery, DollarSign, Fuel, TrendingUp, TrendingDown } from 'lucide-react'
+import { Plus, X, Trash2, Edit, Gauge, Battery, DollarSign, Fuel, TrendingUp, TrendingDown, Calendar, List, Coffee } from 'lucide-react'
 import MaskedNumberInput from '../../components/MaskedNumberInput'
+import ClosingCalendar from '../../components/ClosingCalendar'
 
 const FUEL_TYPES = [
   { value: 'electric_kwh', label: 'Energia (kWh)' },
@@ -27,11 +28,15 @@ export default function DriverClosings() {
   const [fuelEntries, setFuelEntries] = useState([])
   const [transactions, setTransactions] = useState([])
   const [fuelPrices, setFuelPrices] = useState({})
+  const [dayOffs, setDayOffs] = useState([])
+  const [viewMode, setViewMode] = useState('calendar')
+  const [showDayOffModal, setShowDayOffModal] = useState(null)
 
   const load = async () => {
-    const [c, v, s] = await Promise.all([api.get('/finance/closings'), api.get('/finance/vehicles'), api.get('/settings')])
+    const [c, v, s, d] = await Promise.all([api.get('/finance/closings'), api.get('/finance/vehicles'), api.get('/settings'), api.get('/finance/day-offs')])
     setClosings(c.data.closings)
     setVehicles(v.data.vehicles)
+    setDayOffs(d.data.dayOffs)
     if (s.data.fuelPrices) {
       const fp = {}
       s.data.fuelPrices.forEach(p => { fp[p.fuelType] = p.pricePerUnit })
@@ -147,20 +152,80 @@ export default function DriverClosings() {
     setShowModal(true)
   }
 
+  const openNewForDate = (dateStr) => {
+    setEditing(null)
+    setForm({ vehicleId: vehicles[0]?.id || '', date: dateStr, odometerReading: '', energyMeterReading: '', grossRevenue: '', streetExpenses: '', notes: '' })
+    setFuelEntries([])
+    setTransactions([])
+    setShowModal(true)
+  }
+
+  const handleDayClick = (cell) => {
+    if (cell.closing) {
+      openEdit(cell.closing)
+    } else if (cell.dayOff) {
+      // Already a day off, do nothing (remove via the × button)
+    } else {
+      // Ask: new closing or day off?
+      const dateStr = `${cell.key.split('-')[0]}-${String(parseInt(cell.key.split('-')[1]) + 1).padStart(2, '0')}-${String(cell.key.split('-')[2]).padStart(2, '0')}`
+      setShowDayOffModal(dateStr)
+    }
+  }
+
+  const markDayOff = async (dateStr, note) => {
+    await api.post('/finance/day-offs', { date: dateStr, note })
+    setShowDayOffModal(null)
+    load()
+  }
+
+  const removeDayOff = async (dayOff) => {
+    await api.delete(`/finance/day-offs/${dayOff.id}`)
+    load()
+  }
+
   const inputClass = "w-full bg-slate-800 text-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
   const labelClass = "block text-sm font-medium text-slate-300 mb-1.5"
 
   return (
     <div className="p-4 md:p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-white">Fechamentos Diários</h1>
-        <button onClick={openNew}
-          className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition">
-          <Plus className="w-4 h-4" /> Novo Fechamento
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex bg-slate-800 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === 'calendar' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Calendar className="w-3.5 h-3.5" /> Calendário
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${viewMode === 'list' ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'}`}
+            >
+              <List className="w-3.5 h-3.5" /> Lista
+            </button>
+          </div>
+          <button onClick={openNew}
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition">
+            <Plus className="w-4 h-4" /> Novo
+          </button>
+        </div>
       </div>
 
-      {/* Closings list - responsive cards for all devices */}
+      {/* Calendar view */}
+      {viewMode === 'calendar' && (
+        <ClosingCalendar
+          closings={closings}
+          dayOffs={dayOffs}
+          onDayClick={handleDayClick}
+          onMarkDayOff={markDayOff}
+          onRemoveDayOff={removeDayOff}
+          onNewClosing={openNewForDate}
+        />
+      )}
+
+      {/* List view - responsive cards for all devices */}
+      {viewMode === 'list' && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {closings.map(c => (
           <div key={c.id} className="bg-slate-900 rounded-xl p-4 border border-slate-800">
@@ -206,6 +271,41 @@ export default function DriverClosings() {
           </div>
         ))}
       </div>
+      )}
+
+      {showDayOffModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowDayOffModal(null)}>
+          <div className="bg-slate-900 rounded-xl p-6 w-full max-w-sm border border-slate-800" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-white">{new Date(showDayOffModal + 'T12:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</h2>
+              <button onClick={() => setShowDayOffModal(null)}><X className="w-5 h-5 text-slate-400" /></button>
+            </div>
+            <p className="text-sm text-slate-400 mb-4">O que você fez neste dia?</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => { openNewForDate(showDayOffModal); setShowDayOffModal(null) }}
+                className="flex items-center gap-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-white text-sm font-medium px-4 py-3 rounded-lg transition"
+              >
+                <Plus className="w-4 h-4 text-emerald-400" />
+                <div className="text-left">
+                  <p className="text-white">Registrar Fechamento</p>
+                  <p className="text-xs text-slate-400">Adicionar lançamentos do dia</p>
+                </div>
+              </button>
+              <button
+                onClick={() => markDayOff(showDayOffModal, null)}
+                className="flex items-center gap-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-white text-sm font-medium px-4 py-3 rounded-lg transition"
+              >
+                <Coffee className="w-4 h-4 text-amber-400" />
+                <div className="text-left">
+                  <p className="text-white">Folga</p>
+                  <p className="text-xs text-slate-400">Não trabalhei neste dia</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
